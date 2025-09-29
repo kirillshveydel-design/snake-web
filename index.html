@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Snake — Web</title>
   <style>
-    html,body{margin:0;height:100%;background:#0b0b0b;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial}
+    html,body{
+      margin:0;
+      height:100%;
+      background:#330000; /* красный фон вокруг канваса (ощущение красных стен) */
+      color:#fff;
+      font-family:system-ui,Segoe UI,Roboto,Arial
+    }
     .wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
     canvas{background:#000;border:4px solid red;border-radius:0;touch-action:none}
     .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
@@ -52,7 +58,7 @@ const FOOD_URLS = [
   "roblox_food.png",
   "pizza.png",
   "cake.png",
-  "shwarma.png",
+  "shawarma.png", // исправлено название!
   "tort.png",
   "cookie.png",
   "donut.png"
@@ -211,4 +217,3 @@ document.getElementById("restart").onclick = reset;
 </script>
 </body>
 </html>
-
