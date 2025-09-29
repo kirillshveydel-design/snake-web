@@ -6,20 +6,18 @@
   <title>Snake — Web</title>
   <style>
     html,body{
-      margin:0;
-      height:100%;
-      background:#330000; /* красный фон вокруг канваса (ощущение красных стен) */
-      color:#fff;
-      font-family:system-ui,Segoe UI,Roboto,Arial
+      margin:0;height:100%;
+      background:#2b0000; /* тёмно-красный фон */
+      color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial
     }
     .wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
-    canvas{background:#000;border:4px solid red;border-radius:0;touch-action:none}
+    canvas{background:#000;border:4px solid red;border-radius:0;touch-action:none;max-width:100%;height:auto}
     .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
     button{background:#1f6feb;border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
     .score{padding:8px 12px;background:#111;border:1px solid #222;border-radius:10px}
     .tip{opacity:.7;font-size:12px}
     .dpad{display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:8px;margin-top:8px}
-    .dpad button{background:#222}
+    .dpad button{background:#222;color:#fff;font-size:20px;border-radius:10px}
     .dpad .empty{visibility:hidden}
   </style>
 </head>
@@ -30,7 +28,7 @@
     <button id="restart">Перезапуск</button>
     <span class="tip">Управление: стрелки / свайпы</span>
   </div>
-  <canvas id="game" width="800" height="600"></canvas>
+  <canvas id="game"></canvas>
 
   <div class="dpad">
     <span class="empty"></span>
@@ -47,18 +45,20 @@
 
 <script>
 /** ======= НАСТРОЙКИ ======= */
-const WIDTH = 800, HEIGHT = 600;
-const TILE = 60;              // голова стала крупнее
-const FOOD_SIZE = 80;
+// авторазмер под экран
+let WIDTH = window.innerWidth < 600 ? 360 : 800;
+let HEIGHT = window.innerWidth < 600 ? 480 : 600;
+
+const TILE = 40;
+const FOOD_SIZE = 60;
 const SPEED = 8;
 
-// свои картинки:
 const SNAKE_HEAD_URL = "snake_head.png";
 const FOOD_URLS = [
   "roblox_food.png",
   "pizza.png",
   "cake.png",
-  "shawarma.png", // исправлено название!
+  "shwarma.png",
   "tort.png",
   "cookie.png",
   "donut.png"
@@ -83,7 +83,7 @@ async function loadAssets() {
   } catch { headImg = null; }
   for (const url of FOOD_URLS) {
     try { foodImgs.push(await loadImage(url)); }
-    catch { }
+    catch {}
   }
   if (foodImgs.length === 0) foodImgs = [null];
 }
