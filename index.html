@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Snake — Web</title>
+  <style>
+    html,body{margin:0;height:100%;background:#0b0b0b;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial}
+    .wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
+    canvas{background:#000;border:1px solid #222;border-radius:12px;touch-action:none}
+    .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+    button{background:#1f6feb;border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
+    .score{padding:8px 12px;background:#111;border:1px solid #222;border-radius:10px}
+    .tip{opacity:.7;font-size:12px}
+    .dpad{display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:8px;margin-top:8px}
+    .dpad button{background:#222}
+    .dpad .empty{visibility:hidden}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="score">Очки: <b id="score">0</b></span>
+    <button id="restart">Перезапуск</button>
+    <span class="tip">Управление: стрелки / свайпы</span>
+  </div>
+  <canvas id="game" width="800" height="600"></canvas>
+
+  <!-- Мобильный D-pad (на случай, если свайпы не нравятся) -->
+  <div class="dpad">
+    <span class="empty"></span>
+    <button id="up">▲</button>
+    <span class="empty"></span>
+    <button id="left">◀</button>
+    <span class="empty"></span>
+    <button id="right">▶</button>
+    <span class="empty"></span>
+    <button id="down">▼</button>
+    <span class="empty"></span>
+  </div>
+</div>
+
+<script>
+/** ======= НАСТРОЙКИ ======= */
+const WIDTH = 800, HEIGHT = 600;           // размер холста (под телефоны можно сделать меньше)
+const TILE = 40;                            // клетка / сегмент змейки
+const FOOD_SIZE = 80;                       // крупная еда, как просил
+const SPEED = 8;                            // шагов в секунду
+
+// ВСТАВЬ СВОИ ССЫЛКИ:
+const SNAKE_HEAD_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Emoji_u1f40d.svg/128px-Emoji_u1f40d.svg.png";
+// Несколько вариантов еды — каждый раз выбирается случайный
+const FOOD_URLS = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Face-smile.svg/128px-Face-smile.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Red_circle.svg/120px-Red_circle.svg.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Yellow_emoji_happy_face.svg/128px-Yellow_emoji_happy_face.svg.png"
+];
+// Цвет тела
+const BODY_COLOR = "#11c46a";
+
+/** ======= ХЕЛПЕРЫ КАРТИНОК ======= */
+function loadImage(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+let headImg, foodImgs = [];
+
+async function loadAssets() {
+  try {
+    headImg = await loadImage(SNAKE_HEAD_URL);
+  } catch { headImg = null; }
+  for (const url of FOOD_URLS) {
+    try { foodImgs.push(await loadImage(url)); }
+    catch { /* пропускаем */ }
+  }
+  if (foodImgs.length === 0) foodImgs = [null]; // фолбэк — рисуем квадрат
+}
+
+/** ======= ИГРА ======= */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = WIDTH; canvas.height = HEIGHT;
+
+let snake, dir, nextDir, food, score, lastTick = 0, gameOver = false;
+
+function randAligned(max, step) {
+  return Math.floor(Math.random() * Math.floor((max - step) / step + 1)) * step;
+}
+function randomFoodPos() {
+  // чтобы крупная еда целиком помещалась в кадре и попадала на сетку TILE
+  const xMax = WIDTH - FOOD_SIZE, yMax = HEIGHT - FOOD_SIZE;
+  let x = randAligned(xMax, TILE), y = randAligned(yMax, TILE);
+  // дополнительная защита — не спавним еду прямо на змейке
+  const fr = {x, y, w: FOOD_SIZE, h: FOOD_SIZE};
+  const collide = snake.some(seg => rectIntersects(fr, {x:seg.x, y:seg.y, w:TILE, h:TILE}));
+  if (collide) return randomFoodPos();
+  return { x, y, img: foodImgs[Math.floor(Math.random()*foodImgs.length)] };
+}
+function rectIntersects(a,b){return !(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y);}
+
+function reset() {
+  score = 0; gameOver = false;
+  document.getElementById("score").textContent = score;
+  snake = [{x: Math.floor(WIDTH/2/TILE)*TILE, y: Math.floor(HEIGHT/2/TILE)*TILE}];
+  dir = {x: TILE, y: 0}; nextDir = {...dir};
+  food = randomFoodPos();
+  lastTick = 0;
+}
+
+function update() {
+  dir = nextDir; // применяем направление, выбранное игроком
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+  // Столкновение со стенкой -> game over
+  if (head.x < 0 || head.x + TILE > WIDTH || head.y < 0 || head.y + TILE > HEIGHT) {
+    gameOver = true; return;
+  }
+  // Столкновение с собой
+  if (snake.some((s, i) => i>0 && s.x===head.x && s.y===head.y)) { gameOver = true; return; }
+
+  // Движение
+  snake.unshift(head);
+
+  // Поедание (пересечение head (TILE×TILE) и еды (FOOD_SIZE×FOOD_SIZE))
+  const headRect = {x: head.x, y: head.y, w: TILE, h: TILE};
+  const foodRect = {x: food.x, y: food.y, w: FOOD_SIZE, h: FOOD_SIZE};
+  if (rectIntersects(headRect, foodRect)) {
+    score += 1;
+    document.getElementById("score").textContent = score;
+    food = randomFoodPos(); // растём: хвост не удаляем
+  } else {
+    snake.pop(); // не съели — хвост уходит
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,WIDTH,HEIGHT);
+  // еда
+  if (food.img) ctx.drawImage(food.img, food.x, food.y, FOOD_SIZE, FOOD_SIZE);
+  else { ctx.fillStyle = "#f9d14a"; ctx.fillRect(food.x, food.y, FOOD_SIZE, FOOD_SIZE); }
+
+  // голова
+  if (headImg) ctx.drawImage(headImg, snake[0].x, snake[0].y, TILE, TILE);
+  else { ctx.fillStyle = "#27c"; ctx.fillRect(snake[0].x, snake[0].y, TILE, TILE); }
+
+  // тело
+  ctx.fillStyle = BODY_COLOR;
+  for (let i=1;i<snake.length;i++){
+    ctx.fillRect(snake[i].x, snake[i].y, TILE, TILE);
+  }
+
+  if (gameOver){
+    ctx.fillStyle = "rgba(0,0,0,.55)";
+    ctx.fillRect(0,0,WIDTH,HEIGHT);
+    ctx.fillStyle = "#fff";
+    ctx.font = "28px system-ui, Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over — нажми Перезапуск", WIDTH/2, HEIGHT/2);
+  }
+}
+
+function loop(ts) {
+  if (!lastTick) lastTick = ts;
+  const step = 1000 / SPEED;
+  if (!gameOver && ts - lastTick >= step) {
+    update();
+    lastTick = ts;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/** ======= Ввод: клавиатура + свайпы + кнопки ======= */
+function setDir(nx, ny){
+  // нельзя сразу развернуться на 180°
+  if ((nx !== 0 && dir.x === -nx) || (ny !== 0 && dir.y === -ny)) return;
+  nextDir = {x:nx, y:ny};
+}
+window.addEventListener("keydown", e=>{
+  if (e.key === "ArrowUp") setDir(0,-TILE);
+  else if (e.key === "ArrowDown") setDir(0,TILE);
+  else if (e.key === "ArrowLeft") setDir(-TILE,0);
+  else if (e.key === "ArrowRight") setDir(TILE,0);
+});
+
+let touchStart = null;
+canvas.addEventListener("touchstart", e=>{
+  const t = e.changedTouches[0]; touchStart = {x:t.clientX, y:t.clientY};
+},{passive:true});
+canvas.addEventListener("touchend", e=>{
+  if (!touchStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x, dy = t.clientY - touchStart.y;
+  if (Math.abs(dx) > Math.abs(dy)){
+    if (dx > 20) setDir(TILE,0); else if (dx < -20) setDir(-TILE,0);
+  } else {
+    if (dy > 20) setDir(0,TILE); else if (dy < -20) setDir(0,-TILE);
+  }
+  touchStart = null;
+},{passive:true});
+
+// D-pad
+document.getElementById("up").onclick   = ()=>setDir(0,-TILE);
+document.getElementById("down").onclick = ()=>setDir(0,TILE);
+document.getElementById("left").onclick = ()=>setDir(-TILE,0);
+document.getElementById("right").onclick= ()=>setDir(TILE,0);
+
+document.getElementById("restart").onclick = reset;
+
+/** ======= Запуск ======= */
+(async function(){
+  await loadAssets();
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
