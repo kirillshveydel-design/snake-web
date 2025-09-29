@@ -52,7 +52,7 @@ const FOOD_URLS = [
   "roblox_food.png",
   "pizza.png",
   "cake.png",
-  "shawarma.png",
+  "shwarma.png",
   "tort.png",
   "cookie.png",
   "donut.png"
@@ -140,7 +140,7 @@ function draw() {
   else { ctx.fillStyle = "#f9d14a"; ctx.fillRect(food.x, food.y, FOOD_SIZE, FOOD_SIZE); }
 
   // голова
-  if (headImg) ctx.drawImage(headImg, snake[0].x, snake[0].y, TILE, TILE);
+  if (headImg) ctx.drawImage(headImg, snake[0].x, snake[0].y, TILE*1.2, TILE*1.2);
   else { ctx.fillStyle = "#27c"; ctx.fillRect(snake[0].x, snake[0].y, TILE, TILE); }
 
   // тело
@@ -211,3 +211,4 @@ document.getElementById("restart").onclick = reset;
 </script>
 </body>
 </html>
+
