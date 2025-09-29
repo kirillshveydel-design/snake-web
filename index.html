@@ -26,7 +26,7 @@
   </div>
   <canvas id="game" width="800" height="600"></canvas>
 
-  <!-- Мобильный D-pad (на случай, если свайпы не нравятся) -->
+  <!-- Мобильный D-pad -->
   <div class="dpad">
     <span class="empty"></span>
     <button id="up">▲</button>
@@ -42,19 +42,15 @@
 
 <script>
 /** ======= НАСТРОЙКИ ======= */
-const WIDTH = 800, HEIGHT = 600;           // размер холста (под телефоны можно сделать меньше)
-const TILE = 40;                            // клетка / сегмент змейки
-const FOOD_SIZE = 80;                       // крупная еда, как просил
-const SPEED = 8;                            // шагов в секунду
+const WIDTH = 800, HEIGHT = 600;   // размер холста
+const TILE = 40;                    // сегмент змейки
+const FOOD_SIZE = 80;               // размер еды
+const SPEED = 8;                    // шагов в секунду
 
-// ВСТАВЬ СВОИ ССЫЛКИ:
-const SNAKE_HEAD_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Emoji_u1f40d.svg/128px-Emoji_u1f40d.svg.png";
-// Несколько вариантов еды — каждый раз выбирается случайный
-const FOOD_URLS = [
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Face-smile.svg/128px-Face-smile.svg.png",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Red_circle.svg/120px-Red_circle.svg.png",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Yellow_emoji_happy_face.svg/128px-Yellow_emoji_happy_face.svg.png"
-];
+// Используем твои загруженные картинки:
+const SNAKE_HEAD_URL = "snake_head.png";
+const FOOD_URLS = ["roblox_food.png"];
+
 // Цвет тела
 const BODY_COLOR = "#11c46a";
 
@@ -62,7 +58,6 @@ const BODY_COLOR = "#11c46a";
 function loadImage(url) {
   return new Promise((res, rej) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => res(img);
     img.onerror = rej;
     img.src = url;
@@ -77,9 +72,9 @@ async function loadAssets() {
   } catch { headImg = null; }
   for (const url of FOOD_URLS) {
     try { foodImgs.push(await loadImage(url)); }
-    catch { /* пропускаем */ }
+    catch {}
   }
-  if (foodImgs.length === 0) foodImgs = [null]; // фолбэк — рисуем квадрат
+  if (foodImgs.length === 0) foodImgs = [null];
 }
 
 /** ======= ИГРА ======= */
@@ -93,10 +88,8 @@ function randAligned(max, step) {
   return Math.floor(Math.random() * Math.floor((max - step) / step + 1)) * step;
 }
 function randomFoodPos() {
-  // чтобы крупная еда целиком помещалась в кадре и попадала на сетку TILE
   const xMax = WIDTH - FOOD_SIZE, yMax = HEIGHT - FOOD_SIZE;
   let x = randAligned(xMax, TILE), y = randAligned(yMax, TILE);
-  // дополнительная защита — не спавним еду прямо на змейке
   const fr = {x, y, w: FOOD_SIZE, h: FOOD_SIZE};
   const collide = snake.some(seg => rectIntersects(fr, {x:seg.x, y:seg.y, w:TILE, h:TILE}));
   if (collide) return randomFoodPos();
@@ -114,42 +107,36 @@ function reset() {
 }
 
 function update() {
-  dir = nextDir; // применяем направление, выбранное игроком
+  dir = nextDir;
   const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-  // Столкновение со стенкой -> game over
   if (head.x < 0 || head.x + TILE > WIDTH || head.y < 0 || head.y + TILE > HEIGHT) {
     gameOver = true; return;
   }
-  // Столкновение с собой
   if (snake.some((s, i) => i>0 && s.x===head.x && s.y===head.y)) { gameOver = true; return; }
 
-  // Движение
   snake.unshift(head);
 
-  // Поедание (пересечение head (TILE×TILE) и еды (FOOD_SIZE×FOOD_SIZE))
   const headRect = {x: head.x, y: head.y, w: TILE, h: TILE};
   const foodRect = {x: food.x, y: food.y, w: FOOD_SIZE, h: FOOD_SIZE};
   if (rectIntersects(headRect, foodRect)) {
     score += 1;
     document.getElementById("score").textContent = score;
-    food = randomFoodPos(); // растём: хвост не удаляем
+    food = randomFoodPos();
   } else {
-    snake.pop(); // не съели — хвост уходит
+    snake.pop();
   }
 }
 
 function draw() {
   ctx.clearRect(0,0,WIDTH,HEIGHT);
-  // еда
+
   if (food.img) ctx.drawImage(food.img, food.x, food.y, FOOD_SIZE, FOOD_SIZE);
   else { ctx.fillStyle = "#f9d14a"; ctx.fillRect(food.x, food.y, FOOD_SIZE, FOOD_SIZE); }
 
-  // голова
   if (headImg) ctx.drawImage(headImg, snake[0].x, snake[0].y, TILE, TILE);
   else { ctx.fillStyle = "#27c"; ctx.fillRect(snake[0].x, snake[0].y, TILE, TILE); }
 
-  // тело
   ctx.fillStyle = BODY_COLOR;
   for (let i=1;i<snake.length;i++){
     ctx.fillRect(snake[i].x, snake[i].y, TILE, TILE);
@@ -176,9 +163,8 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-/** ======= Ввод: клавиатура + свайпы + кнопки ======= */
+/** ======= Ввод ======= */
 function setDir(nx, ny){
-  // нельзя сразу развернуться на 180°
   if ((nx !== 0 && dir.x === -nx) || (ny !== 0 && dir.y === -ny)) return;
   nextDir = {x:nx, y:ny};
 }
@@ -205,7 +191,6 @@ canvas.addEventListener("touchend", e=>{
   touchStart = null;
 },{passive:true});
 
-// D-pad
 document.getElementById("up").onclick   = ()=>setDir(0,-TILE);
 document.getElementById("down").onclick = ()=>setDir(0,TILE);
 document.getElementById("left").onclick = ()=>setDir(-TILE,0);
