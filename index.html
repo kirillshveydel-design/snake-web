@@ -26,7 +26,6 @@
   </div>
   <canvas id="game" width="800" height="600"></canvas>
 
-  <!-- Мобильный D-pad -->
   <div class="dpad">
     <span class="empty"></span>
     <button id="up">▲</button>
@@ -47,11 +46,11 @@ const TILE = 40;
 const FOOD_SIZE = 80;
 const SPEED = 8;
 
-// Используем картинки из репозитория
+// Теперь берём картинки из репозитория:
 const SNAKE_HEAD_URL = "snake_head.png";
-const FOOD_URLS = ["roblox_food.png"];
-
-// Цвет тела
+const FOOD_URLS = [
+  "roblox_food.png"
+];
 const BODY_COLOR = "#11c46a";
 
 /** ======= ХЕЛПЕРЫ КАРТИНОК ======= */
@@ -67,8 +66,9 @@ function loadImage(url) {
 let headImg, foodImgs = [];
 
 async function loadAssets() {
-  try { headImg = await loadImage(SNAKE_HEAD_URL); }
-  catch { headImg = null; }
+  try {
+    headImg = await loadImage(SNAKE_HEAD_URL);
+  } catch { headImg = null; }
   for (const url of FOOD_URLS) {
     try { foodImgs.push(await loadImage(url)); }
     catch {}
@@ -162,7 +162,7 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-/** ======= Управление ======= */
+/** ======= Ввод ======= */
 function setDir(nx, ny){
   if ((nx !== 0 && dir.x === -nx) || (ny !== 0 && dir.y === -ny)) return;
   nextDir = {x:nx, y:ny};
@@ -194,9 +194,9 @@ document.getElementById("up").onclick   = ()=>setDir(0,-TILE);
 document.getElementById("down").onclick = ()=>setDir(0,TILE);
 document.getElementById("left").onclick = ()=>setDir(-TILE,0);
 document.getElementById("right").onclick= ()=>setDir(TILE,0);
+
 document.getElementById("restart").onclick = reset;
 
-/** ======= Запуск ======= */
 (async function(){
   await loadAssets();
   reset();
