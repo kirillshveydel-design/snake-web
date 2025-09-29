@@ -7,7 +7,7 @@
   <style>
     html,body{margin:0;height:100%;background:#0b0b0b;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial}
     .wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px}
-    canvas{background:#111;border:4px solid red;border-radius:12px;touch-action:none}
+    canvas{background:#000;border:4px solid red;border-radius:0;touch-action:none}
     .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
     button{background:#1f6feb;border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600}
     .score{padding:8px 12px;background:#111;border:1px solid #222;border-radius:10px}
@@ -26,7 +26,6 @@
   </div>
   <canvas id="game" width="800" height="600"></canvas>
 
-  <!-- Мобильный D-pad -->
   <div class="dpad">
     <span class="empty"></span>
     <button id="up">▲</button>
@@ -42,28 +41,28 @@
 
 <script>
 /** ======= НАСТРОЙКИ ======= */
-const WIDTH = 800, HEIGHT = 600;   // размер поля
-const TILE = 50;                   // клетка / сегмент змейки
-const FOOD_SIZE = 80;              // еда крупная
-const SPEED = 8;                   // шагов в секунду
+const WIDTH = 800, HEIGHT = 600;
+const TILE = 60;              // голова стала крупнее
+const FOOD_SIZE = 80;
+const SPEED = 8;
 
-// локальные картинки
+// свои картинки:
 const SNAKE_HEAD_URL = "snake_head.png";
 const FOOD_URLS = [
-  "cake.png",
+  "roblox_food.png",
   "pizza.png",
-  "donut.png",
-  "cookie.png",
+  "cake.png",
+  "shawarma.png",
   "tort.png",
-  "shawarma.png"
+  "cookie.png",
+  "donut.png"
 ];
-
 const BODY_COLOR = "#11c46a";
 
-/** ======= ЗАГРУЗКА КАРТИНОК ======= */
 function loadImage(url) {
   return new Promise((res, rej) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => res(img);
     img.onerror = rej;
     img.src = url;
@@ -78,12 +77,11 @@ async function loadAssets() {
   } catch { headImg = null; }
   for (const url of FOOD_URLS) {
     try { foodImgs.push(await loadImage(url)); }
-    catch {}
+    catch { }
   }
   if (foodImgs.length === 0) foodImgs = [null];
 }
 
-/** ======= ИГРА ======= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 canvas.width = WIDTH; canvas.height = HEIGHT;
@@ -152,7 +150,7 @@ function draw() {
   }
 
   if (gameOver){
-    ctx.fillStyle = "rgba(0,0,0,.65)";
+    ctx.fillStyle = "rgba(0,0,0,.55)";
     ctx.fillRect(0,0,WIDTH,HEIGHT);
     ctx.fillStyle = "#fff";
     ctx.font = "28px system-ui, Segoe UI, Arial";
@@ -172,7 +170,6 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-/** ======= Управление ======= */
 function setDir(nx, ny){
   if ((nx !== 0 && dir.x === -nx) || (ny !== 0 && dir.y === -ny)) return;
   nextDir = {x:nx, y:ny};
@@ -200,15 +197,12 @@ canvas.addEventListener("touchend", e=>{
   touchStart = null;
 },{passive:true});
 
-// D-pad
 document.getElementById("up").onclick   = ()=>setDir(0,-TILE);
 document.getElementById("down").onclick = ()=>setDir(0,TILE);
 document.getElementById("left").onclick = ()=>setDir(-TILE,0);
 document.getElementById("right").onclick= ()=>setDir(TILE,0);
-
 document.getElementById("restart").onclick = reset;
 
-/** ======= Запуск ======= */
 (async function(){
   await loadAssets();
   reset();
